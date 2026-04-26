@@ -5,11 +5,10 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const express = require('express')
-const cors = require('cors')
 const helmet = require('helmet')
 const session = require('express-session')
 const passport = require('./config/passport')       // ← Our passport config
-
+const cors = require('cors')
 const prisma = require('./config/prisma')
 const authRoutes = require('./routes/auth.routes')
 const bookmarkRoutes = require('./routes/bookmark.routes')
@@ -20,28 +19,28 @@ const app = express()
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 app.use(helmet())
-const cors = require("cors");
+
 
 const allowedOrigins = [
   "https://link-vault-theta-eight.vercel.app",
   "http://localhost:5173"
-];
+]
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+      return callback(null, true)
     }
-    return callback(new Error("CORS blocked"));
+    return callback(new Error("CORS blocked"))
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
-}));
+}))
 
-// ✅ THIS LINE IS MISSING IN YOUR PROJECT
-app.options('*', cors());
+// ✅ important
+app.options('*', cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(generalLimiter)
