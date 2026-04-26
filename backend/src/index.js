@@ -26,21 +26,24 @@ const allowedOrigins = [
   "http://localhost:5173"
 ]
 
+// ✅ SIMPLE + RELIABLE CONFIG
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-    return callback(new Error("CORS blocked"))
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  origin: allowedOrigins,
+  credentials: true
 }))
 
-// ✅ important
-app.options(/.*/, cors())
+// ✅ HANDLE PREFLIGHT MANUALLY (THIS FIXES YOUR 404)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', 'https://link-vault-theta-eight.vercel.app')
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.header('Access-Control-Allow-Credentials', 'true')
+    return res.sendStatus(200) // 🔥 THIS IS THE KEY
+  }
+  next()
+})
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(generalLimiter)
