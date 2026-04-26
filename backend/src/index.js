@@ -20,26 +20,15 @@ const app = express()
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 app.use(helmet())
 
-
-const allowedOrigins = [
-  "https://link-vault-theta-eight.vercel.app",
-  "http://localhost:5173"
-]
-
-// ✅ SIMPLE + RELIABLE CONFIG
 app.use(cors({
-  origin: allowedOrigins,
+  origin: "https://link-vault-theta-eight.vercel.app",
   credentials: true
 }))
 
-// ✅ HANDLE PREFLIGHT MANUALLY (THIS FIXES YOUR 404)
+// 🔥 FORCE HANDLE ALL OPTIONS
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', 'https://link-vault-theta-eight.vercel.app')
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    res.header('Access-Control-Allow-Credentials', 'true')
-    return res.sendStatus(200) // 🔥 THIS IS THE KEY
+    return res.sendStatus(200)
   }
   next()
 })
