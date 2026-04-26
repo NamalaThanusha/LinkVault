@@ -20,12 +20,28 @@ const app = express()
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 app.use(helmet())
+const cors = require("cors");
+
+const allowedOrigins = [
+  "https://link-vault-theta-eight.vercel.app",
+  "http://localhost:5173"
+];
+
 app.use(cors({
-  origin: [
-    "https://link-vault-theta-eight.vercel.app"
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS blocked"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+// ✅ THIS LINE IS MISSING IN YOUR PROJECT
+app.options('*', cors());
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(generalLimiter)
