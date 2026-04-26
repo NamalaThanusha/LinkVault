@@ -1,0 +1,64 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── USER TABLE ───────────────────────────────────────────────
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String?                          // ← CHANGED: now optional (Google users have no password)
+  name                String
+  provider            String    @default("local")      // ← NEW: "local" or "google"
+  googleId            String?   @unique                // ← NEW: Google's unique user ID
+  isEmailVerified     Boolean   @default(false)
+  verificationToken   String?
+  refreshToken        String?
+  resetPasswordToken  String?
+  resetPasswordExpiry DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  bookmarks           Bookmark[]
+}
+
+// ─── BOOKMARK TABLE ───────────────────────────────────────────
+model Bookmark {
+  id          String   @id @default(uuid())
+  title       String
+  url         String
+  description String?
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tags        BookmarkTag[]
+}
+
+// ─── TAG TABLE ────────────────────────────────────────────────
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  bookmarks BookmarkTag[]
+}
+
+// ─── BOOKMARKTAG TABLE (JOIN TABLE) ───────────────────────────
+model BookmarkTag {
+  bookmarkId String
+  tagId      String
+
+  bookmark   Bookmark @relation(fields: [bookmarkId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([bookmarkId, tagId])
+}
