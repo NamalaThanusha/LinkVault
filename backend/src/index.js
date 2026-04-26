@@ -19,9 +19,11 @@ const app = express()
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
 app.use(helmet())
 app.use(cors({
-  origin: process.env.CLIENT_URL,     // Only allow your frontend
-  credentials: true,                  // Allow cookies
-}))
+  origin: [
+    "https://link-vault-theta-eight.vercel.app"
+  ],
+  credentials: true
+}));
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(generalLimiter)
