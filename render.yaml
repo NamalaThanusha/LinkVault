@@ -4,6 +4,25 @@ services:
     env: node
     rootDir: backend
     buildCommand: npm install && npx prisma generate
-    startCommand: npm start
+    startCommand: node src/index.js
     healthCheckPath: /api/health
     autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CLIENT_URL
+        value: https://link-vault-theta-eight.vercel.app
+      - key: CORS_ORIGINS
+        value: https://link-vault-theta-eight.vercel.app,http://localhost:3000,http://localhost:5173
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        value: https://linkvault-backend-aj1b.onrender.com/api/auth/google/callback
