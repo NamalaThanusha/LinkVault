@@ -69,37 +69,35 @@ function LoginPage() {
 
   // ── Handle form submit ────────────────────
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  console.log('Form submitted!')  // debug
+    e.preventDefault()
 
-  const validationErrors = validate()
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors)
-    return
+    const validationErrors = validate()
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      return
+    }
+
+    setServerError('')
+    setLoading(true)
+
+    try {
+      await login(formData.email, formData.password)
+      navigate('/dashboard')
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed. Please try again.'
+      setServerError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  setServerError('')
-  setLoading(true)
-
-  try {
-    console.log('Calling login...')  // debug
-    await login(formData.email, formData.password)
-    console.log('Login success!')   // debug
-    navigate('/dashboard')
-
-  } catch (error) {
-    console.log('Login error:', error)
-    console.log('Error response:', error.response?.data)
-
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      'Login failed. Please try again.'
-    setServerError(message)
-  } finally {
-    setLoading(false)
+  const handleGoogleLogin = () => {
+    setServerError('')
+    googleLogin()
   }
-}
 
   // ── UI ────────────────────────────────────
   return (
@@ -186,7 +184,7 @@ function LoginPage() {
           <Button
             variant="google"
             fullWidth
-            onClick={googleLogin}
+            onClick={handleGoogleLogin}
             disabled={loading}
           >
             {/* Google Icon */}

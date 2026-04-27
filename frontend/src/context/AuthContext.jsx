@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react'
-import { getMe, loginUser, logoutUser } from '../api/authApi'
+import { getMe, loginUser, logoutUser, startGoogleLogin } from '../api/authApi'
 import { saveTokens, clearTokens, isLoggedIn } from '../utils/tokenUtils'
 
 // Create the context
@@ -30,7 +30,6 @@ export function AuthProvider({ children }) {
   // Login function
   const login = async (email, password) => {
     const response = await loginUser({ email, password })
-    console.log('Full response:', response.data)
 
     const data = response.data.data || response.data
     const { accessToken, refreshToken, user } = data
@@ -55,7 +54,7 @@ export function AuthProvider({ children }) {
 
   // Google Login
   const googleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+    startGoogleLogin()
   }
 
   const value = {

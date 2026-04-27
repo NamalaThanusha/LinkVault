@@ -7,7 +7,7 @@
 
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { registerUser } from '../api/authApi'
+import { registerUser, googleLogin } from '../api/authApi'
 import InputField from '../components/InputField'
 import Button from '../components/Button'
 
@@ -227,9 +227,7 @@ function RegisterPage() {
           <Button
             variant="google"
             fullWidth
-            onClick={() => {
-              window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
-            }}
+            onClick={googleLogin}
             disabled={loading}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

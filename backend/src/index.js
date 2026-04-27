@@ -1,15 +1,16 @@
 // src/index.js
 
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
+  require('dotenv').config()
 }
 
 const express = require('express')
 const helmet = require('helmet')
 const session = require('express-session')
-const passport = require('./config/passport')       // ← Our passport config
 const cors = require('cors')
+
 const prisma = require('./config/prisma')
+const passport = require('./config/passport')
 const authRoutes = require('./routes/auth.routes')
 const bookmarkRoutes = require('./routes/bookmark.routes')
 const { globalErrorHandler } = require('./middleware/error.middleware')
@@ -17,18 +18,63 @@ const { generalLimiter } = require('./config/rateLimit')
 
 const app = express()
 
-// ─── SECURITY MIDDLEWARE ──────────────────────────────────────
+const normalizeOrigin = (origin) => origin.trim().replace(/\/+$/, '')
+
+const getAllowedOrigins = () => {
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ]
+
+  const envOrigins = [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_ORIGIN,
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : []),
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ]
+
+  return new Set(
+    [...defaultOrigins, ...envOrigins]
+      .filter(Boolean)
+      .map(normalizeOrigin)
+  )
+}
+
+const allowedOrigins = getAllowedOrigins()
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser clients (Postman/cURL) and same-origin calls.
+    if (!origin) {
+      return callback(null, true)
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin)
+    if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+}
+
+app.set('trust proxy', 1)
+
+// ─── SECURITY + CORE MIDDLEWARE ──────────────────────────────
 app.use(helmet())
+app.use(cors(corsOptions))
 
-app.use(cors({
-  origin: "https://link-vault-theta-eight.vercel.app",
-  credentials: true
-}))
-
-// 🔥 FORCE HANDLE ALL OPTIONS
+// Some proxies still forward OPTIONS downstream. End them early.
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200)
+    return res.sendStatus(204)
   }
   next()
 })
@@ -37,21 +83,22 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(generalLimiter)
 
-// ─── SESSION MIDDLEWARE ───────────────────────────────────────
-// Required by passport for the OAuth redirect flow
-// This is NOT your main auth — just temporary during Google login
-app.use(session({
-  secret: process.env.JWT_SECRET,     // Reuse your JWT secret
-  resave: false,                      // Don't save if nothing changed
-  saveUninitialized: false,           // Don't create empty sessions
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',  // HTTPS only in prod
-    maxAge: 24 * 60 * 60 * 1000,     // 24 hours
-  },
-}))
+// ─── SESSION + PASSPORT (required for OAuth handshake) ───────
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'change-me',
+    resave: false,
+    saveUninitialized: false,
+    proxy: process.env.NODE_ENV === 'production',
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+)
 
-// ─── PASSPORT MIDDLEWARE ──────────────────────────────────────
-// Initialize passport AFTER session middleware
 app.use(passport.initialize())
 app.use(passport.session())
 
@@ -63,7 +110,7 @@ app.use('/api/bookmarks', bookmarkRoutes)
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'LinkVault API is running 🚀',
+    message: 'LinkVault API is running',
     environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
   })
@@ -84,12 +131,12 @@ app.use(globalErrorHandler)
 const PORT = process.env.PORT || 5000
 
 app.listen(PORT, async () => {
-  console.log(`✅ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
   try {
     await prisma.$connect()
-    console.log('✅ Database connected successfully')
+    console.log('Database connected successfully')
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message)
+    console.error('Database connection failed:', error.message)
     process.exit(1)
   }
 })

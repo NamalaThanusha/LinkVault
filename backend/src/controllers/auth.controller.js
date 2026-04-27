@@ -4,6 +4,8 @@
 const authService = require('../services/auth.service')
 const { successResponse, errorResponse } = require('../utils/response.utils')
 
+const getClientUrl = () => (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '')
+
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
@@ -143,24 +145,17 @@ const getMe = async (req, res) => {
   }
 }
 
-// GET /api/auth/google
-// This just starts the Google OAuth flow
-// Passport redirects user to Google automatically
-const googleAuth = (req, res, next) => {
-  // passport.authenticate triggers the Google redirect
-  // scope tells Google what info we want
-  const passport = require('passport')
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    session: false,
-  })(req, res, next)
-}
-
 // GET /api/auth/google/callback
 // Google redirects here after user approves
 // Passport has already processed the profile at this point
 const googleCallback = async (req, res) => {
+  const clientUrl = getClientUrl()
+
   try {
+    if (!req.user) {
+      return res.redirect(`${clientUrl}/login?error=google_auth_failed`)
+    }
+
     // req.user was set by passport after Google auth succeeded
     // Now we generate our JWT tokens
     const result = await authService.googleLogin(req.user)
@@ -171,13 +166,13 @@ const googleCallback = async (req, res) => {
 
     // Redirect to frontend with tokens
     return res.redirect(
-      `${process.env.CLIENT_URL}/auth-success?accessToken=${accessToken}&refreshToken=${refreshToken}`
+      `${clientUrl}/auth-success?accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`
     )
 
   } catch (error) {
     // Something went wrong — redirect to frontend error page
     return res.redirect(
-      `${process.env.CLIENT_URL}/auth-error?message=Google+login+failed`
+      `${clientUrl}/login?error=${encodeURIComponent('Google login failed')}`
     )
   }
 }
@@ -191,6 +186,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getMe,
-  googleAuth,         // ← ADD
-  googleCallback,     // ← ADD
+  googleCallback,
 }

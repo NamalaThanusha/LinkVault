@@ -13,6 +13,8 @@ const {
 } = require('../middleware/validate.middleware')
 const { authLimiter, forgotPasswordLimiter } = require('../config/rateLimit')
 
+const getClientUrl = () => (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '')
+
 // ─── EXISTING AUTH ROUTES ─────────────────────────────────────
 router.post('/register', authLimiter, validateRegister, authController.register)
 router.get('/verify-email', authController.verifyEmail)
@@ -25,9 +27,15 @@ router.get('/me', protect, authController.getMe)
 
 // ─── GOOGLE OAUTH ROUTES ──────────────────────────────────────
 
-// STEP 1 of OAuth flow:
-// User hits this URL → passport redirects them to Google
-router.get('/google', authController.googleAuth)
+// STEP 1: Frontend sends user here, then Passport redirects to Google.
+router.get(
+  '/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+    prompt: 'select_account',
+  })
+)
 
 // STEP 2 of OAuth flow:
 // Google redirects back here after user approves
@@ -37,8 +45,8 @@ router.get('/google', authController.googleAuth)
 router.get(
   '/google/callback',
   passport.authenticate('google', {
-    failureRedirect: `${process.env.CLIENT_URL}/auth-error`,
-    session: false,           // We use JWT not sessions
+    failureRedirect: `${getClientUrl()}/login?error=google_auth_failed`,
+    session: false,
   }),
   authController.googleCallback
 )

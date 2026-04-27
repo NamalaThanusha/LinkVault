@@ -3,6 +3,7 @@
 // Each function = one backend endpoint
 
 import api from './axiosInstance'
+import { buildApiUrl } from './axiosInstance'
 
 // ── Register new user ──────────────────────
 export const registerUser = (data) => {
@@ -58,7 +59,8 @@ export const resetPassword = (data) => {
 
 // ── Google OAuth login ─────────────────────
 export const googleLogin = () => {
-  // Redirects browser to Google login page
-  // This is NOT an axios call — it's a direct redirect
-  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+  // Redirect browser to backend Google OAuth start endpoint
+  window.location.assign(buildApiUrl('/auth/google'))
 }
+
+export const startGoogleLogin = googleLogin

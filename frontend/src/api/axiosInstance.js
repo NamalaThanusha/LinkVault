@@ -4,12 +4,47 @@
 
 import axios from 'axios'
 
+const trimTrailingSlash = (value) => value.replace(/\/+$/, '')
+
+const ensureApiPrefix = (value) => {
+  const normalized = trimTrailingSlash(value)
+  return normalized.endsWith('/api') ? normalized : `${normalized}/api`
+}
+
+const resolveApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL?.trim()
+
+  // Works with both:
+  // - VITE_API_URL=https://your-backend.onrender.com
+  // - VITE_API_URL=https://your-backend.onrender.com/api
+  if (envUrl) {
+    return ensureApiPrefix(envUrl)
+  }
+
+  // Friendly fallback for local development.
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5000/api'
+  }
+
+  // In production, prefer an explicit VITE_API_URL. This fallback
+  // supports setups that proxy /api from the frontend host.
+  return '/api'
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
+
+export const buildApiUrl = (path) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${API_BASE_URL}${normalizedPath}`
+}
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // reads from your .env file
-  withCredentials: true,                  // allows cookies to be sent
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  timeout: 15000,
   headers: {
-    'Content-Type': 'application/json',   // we send JSON data
+    'Content-Type': 'application/json',
   },
 })
 
@@ -55,8 +90,9 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken')
 
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
-          { refreshToken }
+          buildApiUrl('/auth/refresh'),
+          { refreshToken },
+          { withCredentials: true }
         )
 
         // Save the new access token
